@@ -1,0 +1,39 @@
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+metadata:
+  namespace: istio-system
+  name: main-istiocontrolplane
+spec:
+# Using Default profile for this example. You can select differnt profile for your use case
+# https://istio.io/docs/setup/additional-setup/config-profiles/
+  profile: default
+  values:
+
+    global:
+      multiCluster:
+        clusterName: main0
+      network: network1
+
+      meshNetworks:
+        network1:
+          endpoints:
+            - fromRegistry: Kubernetes
+          gateways:
+            - registry_service_name: istio-ingressgateway.istio-system.svc.cluster.local
+              port: 443
+
+        network2:
+          endpoints:
+          # Remote cluster name is very important for service discovery across cluster
+            - fromRegistry: remote0
+          gateways:
+            - registry_service_name: istio-ingressgateway.istio-system.svc.cluster.local
+              port: 443
+      # This configuration is specific to internal LoadBalancer setup
+  components:
+    pilot:
+      k8s:
+        service:
+          type: LoadBalancer
+        serviceAnnotations:
+          service.beta.kubernetes.io/azure-load-balancer-internal: "true"

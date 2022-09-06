@@ -1,0 +1,55 @@
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+metadata:
+  namespace: istio-system
+  name: main-istiocontrolplane
+spec:
+# Using Default profile for this example. You can select differnt profile for your use case
+# https://istio.io/docs/setup/additional-setup/config-profiles/
+  profile: default
+  values:
+    security:
+      selfSigned: false
+
+    global:
+      controlPlaneSecurityEnabled: true
+      mtls:
+        # Require all service to service communication to have mtls
+        enabled: true
+      multiCluster:
+        clusterName: eq-aksDC
+      network: network1
+
+      meshNetworks:
+        network1:
+          endpoints:
+            - fromRegistry: Kubernetes
+          gateways:
+            - registry_service_name: istio-ingressgateway.istio-system.svc.cluster.local
+              port: 443
+
+        network2:
+          endpoints:
+          # Remote cluster name is very important for service discovery across cluster
+            - fromRegistry: azure-aksDRC
+          gateways:
+            - registry_service_name: istio-ingressgateway.istio-system.svc.cluster.local
+              port: 443
+      # This configuration is specific to internal LoadBalancer setup
+  components:
+    pilot:
+      k8s:
+        service:
+          type: LoadBalancer
+        service_annotations:
+        # This service annotation is specific to AKS. You can use different annotation
+        # for your colud provider
+          service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+        # Enable or desable addon components
+  addonComponents:
+    grafana:
+      enabled: false
+    kiali:
+      enabled: true
+    prometheus:
+      enabled: true
